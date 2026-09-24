@@ -5,30 +5,46 @@ on:
     tags:
       - v[0-9]+.[0-9]+.[0-9]+
 
-# Mirrors the consumer workflow under review. The release job declares the
-# environment, holds id-token: write, stores no registry credential, and reaches the shared
-# composite action in another repository at a mutable branch ref. Note that the other two
-# action references in this job are SHA-pinned and this one is not, which is the upstream shape.
+permissions:
+  contents: read
 
 jobs:
+  compile:
+    name: "Compile the gem"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: "Checkout code"
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - name: "Setup Ruby"
+        uses: ruby/setup-ruby@bec3f19a76460dbe12f60def7d1a77585f07516c # v1.322.0
+        with:
+          ruby-version: "3.3"
+      - name: "Run the mutable build action"
+        uses: "timhaines/release-action-fixture-rubygems/.github/actions/build-release@main"
+        with:
+          step: compile
+          gem-name: "release-integrity-fixture"
+          gem-version: "${{ github.ref_name }}"
+
   release:
+    name: "Release the compiled gem"
+    needs: compile
     environment: release
     permissions:
-      id-token: write
       contents: read
+      id-token: write
+    runs-on: ubuntu-latest
     timeout-minutes: 5
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
-    name: "Release all gems"
-    runs-on: "ubuntu-latest"
     steps:
       - name: "Setup Ruby"
         uses: ruby/setup-ruby@bec3f19a76460dbe12f60def7d1a77585f07516c # v1.322.0
         with:
           ruby-version: "3.3"
-      - name: "Run the build action"
+      - name: "Run the mutable release action"
         uses: "timhaines/release-action-fixture-rubygems/.github/actions/build-release@main"
         with:
-          step: "release"
-          publish: "true"
+          step: release
           gem-name: "release-integrity-fixture"
           gem-version: "${{ github.ref_name }}"
