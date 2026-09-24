@@ -1,0 +1,37 @@
+name: "Consumer token boundary fixture"
+on:
+  workflow_dispatch:
+
+jobs:
+  control:
+    name: "Contents read control"
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          ref: token-fixture
+          persist-credentials: true
+      - uses: "timhaines/release-action-fixture-rubygems/.github/actions/token-write@main"
+        with:
+          target-branch: token-fixture
+          expected-status: "403"
+          label: control
+
+  attack:
+    name: "Contents write attack"
+    needs: control
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          ref: token-fixture
+          persist-credentials: true
+      - uses: "timhaines/release-action-fixture-rubygems/.github/actions/token-write@main"
+        with:
+          target-branch: token-fixture
+          expected-status: "201"
+          label: attack
